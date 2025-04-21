@@ -6,7 +6,7 @@ class StrategyV1(StrategyBase):
     
     def __init__(self):
         super().__init__()
-        self.banned_codes = {600168, 40, 600289, 600811, 600070, 600811, 2200, 600157}  # 禁用股票代码集合
+        self.banned_codes = {}  # 禁用股票代码集合
         self.rebalance_freq = 1  # 调仓频率(每N天调仓一次)
         self.sell_count = 2  # 每次调仓最大卖出股票数量
         self.principal = 15_0000  # 本金

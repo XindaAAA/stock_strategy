@@ -14,6 +14,7 @@ class APP:
         'v1': StrategyV1,
         'v2': StrategyV2
     }
+    st = {70, 488, 525, 615, 669, 752, 793, 851, 889, 909, 989, 2005, 2024, 2092, 2124, 2168, 2197, 2200, 2251, 2259, 2289, 2316, 2388, 2424, 2425, 2485, 2490, 2528, 2569, 2592, 2602, 2650, 2656, 2721, 2742, 2748, 2808, 2822, 2872, 300029, 300052, 300096, 300097, 300125, 300137, 300147, 300163, 300165, 300175, 300205, 300300, 300313, 300343, 300368, 300376, 300419, 300555, 300600, 600136, 600190, 600287, 600303, 600358, 600360, 600365, 600381, 600568, 600599, 600603, 600608, 600671, 600711, 600777, 600831, 603007, 603377, 603388, 603557, 603828, 603869, 603879, 603959, 688287}
 
     def __init__(self, result_file_path, strategy_name='v1'):
         self.agent = Agent(result_file_path)
@@ -35,10 +36,8 @@ class APP:
         # topk股票
         for i in range(k):
             code = self.agent.fetcher.get_code_by_rank(i, day)
-            if filt_st:
-                name = self.agent.fetcher.get_name_by_code(code)
-                if 'ST' in name:  # 跳过st股票
-                    continue
+            if filt_st and code in self.st:
+                continue
             if not code in self.agent.cur_position:
                 result_list.append([i, code, ''])
         for i, code, tag in sorted(result_list, key=lambda item: item[0]):
@@ -101,10 +100,8 @@ class APP:
                             }
         for rank in range(50):
             code = self.agent.fetcher.get_code_by_rank(rank, day)
-            if filt_st:
-                name = self.agent.fetcher.get_name_by_code(code)
-                if 'ST' in name:  # 跳过st股票
-                    continue
+            if filt_st and code in self.st:
+                continue
             price = self.agent.fetcher.get_close_by_code(code, day)
             if price == 0:
                 continue
@@ -132,4 +129,4 @@ class APP:
 
 if __name__ == '__main__':
     app = APP('../data/result.csv')
-    app.backtest(filt_st=False)
+    app.backtest(filt_st=True)

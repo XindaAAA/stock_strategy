@@ -45,7 +45,7 @@ class Fetcher:
             )
             price = float(price[0]['close'])
             return price
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, IndexError) as e:
             print(f'[WARNING] 获取股票{code}在{day}的收盘价失败: {str(e)}')
             return 0
 
@@ -61,7 +61,7 @@ class Fetcher:
             )
             price = float(price[0]['open'])
             return price
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, IndexError) as e:
             print(f'[WARNING] 获取股票{code}在{day}的开盘价失败: {str(e)}')
             return 0
         
@@ -75,7 +75,7 @@ class Fetcher:
             )
             name = name[0]['name']
             return name
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, IndexError) as e:
             print(f'[WARNING] 获取股票{code}的名称失败: {str(e)}')
 
     def get_rank_by_code(self, code, day=None):
