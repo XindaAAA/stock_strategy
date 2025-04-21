@@ -178,10 +178,14 @@ class APP:
     def plot_total_money(self, day_list, total_money_list):
         fig, ax = plt.subplots()
         ax.plot(day_list, total_money_list)
-        # 设置刻度间隔，这里设置为每5天显示一个刻度
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=5))
 
-        # 自动旋转x轴标签以防止重叠
+        # 动态调整 x 轴刻度间隔
+        num_days = len(day_list)
+        interval = num_days // 15
+
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+
+        # 自动旋转 x 轴标签以防止重叠
         fig.autofmt_xdate()
         plt.savefig('result/fig.png')
         plt.show()
