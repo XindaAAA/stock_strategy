@@ -45,8 +45,7 @@ class APP:
 
     def backtest(self, start_money=15_0000, strategy_name=None, filt_st=True):
         """回测"""
-        os.makedirs('position', exist_ok=True)
-        os.makedirs('result', exist_ok=True)
+        os.makedirs('result/position', exist_ok=True)
         if strategy_name is not None:
             self.set_strategy(strategy_name)
             
@@ -71,7 +70,7 @@ class APP:
             total_money_list.append(total_money)
             print(day, '总权益', total_money, '剩余金额', money_left)
             # 保存当前仓位信息
-            with open(f'position/{day}.csv', 'w') as f:
+            with open(f'result/position/{day}.csv', 'w') as f:
                 txt = '股票代码,当前仓位,开盘价,收盘价,市值,排名\n'
                 for code in self.agent.cur_position:
                     amount = self.agent.cur_position[code]['amount']
@@ -82,8 +81,70 @@ class APP:
                 f.write(txt)
 
             strategy = self.get_strategy(day, money_left, total_money, filt_st=filt_st)
-        
+
+        self.analyze_backtest_result(day_list, total_money_list)
         self.plot_total_money(day_list, total_money_list)
+
+    def analyze_backtest_result(self, day_list, total_money_list):
+        """
+        分析回测结果，计算总年化、超额年化、最大回撤、最大回撤发生时间段、修复时段。
+        
+        :param day_list: 日期列表
+        :param total_money_list: 总权益列表
+        """
+        import numpy as np
+        from datetime import datetime
+        
+        # 转换日期列表为 datetime 对象
+        dates = [datetime.strptime(day, '%Y%m%d') for day in day_list]
+        # 计算总天数
+        total_days = (dates[-1] - dates[0]).days
+        
+        # 计算总年化收益率
+        start_value = total_money_list[0]
+        end_value = total_money_list[-1]
+        total_return = ((end_value / start_value) - 1) * 100
+        total_annual_return = ((end_value / start_value) ** (365 / total_days) - 1) * 100
+        
+        # 计算最大回撤
+        cumulative_returns = np.array(total_money_list)
+        running_max = np.maximum.accumulate(cumulative_returns)
+        drawdown = (cumulative_returns - running_max) / running_max
+        max_drawdown = np.min(drawdown) * 100
+        
+        # 最大回撤发生时间段
+        max_dd_start_index = np.argmax(running_max)
+        max_drawdown = 0
+        max_dd_start_index = 0
+        max_dd_end_index = 0
+        for i in range(len(cumulative_returns)):
+            for j in range(i, len(cumulative_returns)):
+                drawdown = (cumulative_returns[i] - cumulative_returns[j]) / cumulative_returns[i]
+                if drawdown > max_drawdown:
+                    max_drawdown = drawdown
+                    max_dd_start_index = i
+                    max_dd_end_index = j
+        
+        max_drawdown = max_drawdown * 100
+        max_dd_start_date = day_list[max_dd_start_index]
+        max_dd_end_date = day_list[max_dd_end_index]
+        
+        # 修复时段（假设修复是指回到最大回撤前的最高点）
+        recovery_index = np.argmax(cumulative_returns[max_dd_end_index:] >= cumulative_returns[max_dd_start_index])
+        if recovery_index > 0:
+            recovery_date = day_list[max_dd_end_index + recovery_index]
+        else:
+            recovery_date = "未修复"
+        
+        txt = f"回测时间段: {day_list[0]} 至 {day_list[-1]}\n"
+        txt += f"总收益率: {total_return:.2f}%\n"
+        txt += f"年化收益率: {total_annual_return:.2f}%\n"
+        txt += f"最大回撤: {max_drawdown:.2f}%\n"
+        txt += f"最大回撤发生时间段: {max_dd_start_date} 至 {max_dd_end_date}\n"
+        txt += f"修复时段: {max_dd_end_date} 至 {recovery_date}\n"
+        with open('result/result.txt', 'w') as f:
+            f.write(txt)
+        print(txt)
 
     def get_strategy(self, day, money_left, total_money, filt_st=True):
         stocks = dict()
