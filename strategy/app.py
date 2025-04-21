@@ -176,7 +176,10 @@ class APP:
         return self.strategy.get_strategy(stocks, money_left, total_money)
         
     def plot_total_money(self, day_list, total_money_list):
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12, 6))
+        # 添加网格线
+        ax.grid(True)
+
         ax.plot(day_list, total_money_list)
 
         # 动态调整 x 轴刻度间隔
