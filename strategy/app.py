@@ -114,7 +114,6 @@ class APP:
                                 }
         return self.strategy.get_strategy(stocks, money_left, total_money)
         
-
     def plot_total_money(self, day_list, total_money_list):
         fig, ax = plt.subplots()
         ax.plot(day_list, total_money_list)

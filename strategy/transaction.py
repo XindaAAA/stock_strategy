@@ -11,6 +11,7 @@ class Agent:
     def __init__(self, result_file_path='../QuantModel/results/mt12_lt7v3/mt12_lt7v3_ft12_nm0/result_.csv'):
         self.fetcher = Fetcher(result_file_path)
         self.cur_position = dict()
+        self.cache = dict()
 
     def load_position(self, day, dirname='../data/position'):
         if '-' not in day:
@@ -32,7 +33,13 @@ class Agent:
     def get_cur_capital(self, day):
         capital = 0
         for code in self.cur_position:
-            capital += self.cur_position[code]['amount'] * self.fetcher.get_close_by_code(code, day)
+            price = self.fetcher.get_close_by_code(code, day)
+            if code not in self.cache and price != 0:
+                self.cache[code] = price
+            elif price == 0:  # 若当前交易日停牌，使用上一个有效收盘价
+                price = self.cache[code]
+            
+            capital += self.cur_position[code]['amount'] * price
         return capital
 
     def transaction(self, code, day, amount, money):
