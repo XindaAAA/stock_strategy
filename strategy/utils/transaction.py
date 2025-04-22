@@ -1,5 +1,4 @@
-from fetcher import Fetcher
-# from fetcher_stock_data import Fetcher
+from .fetcher import Fetcher
 import os
 
 
@@ -8,7 +7,7 @@ class Agent:
     guohufei=0.00001
     yinhuashui=0.0005
 
-    def __init__(self, result_file_path='../QuantModel/results/mt12_lt7v3/mt12_lt7v3_ft12_nm0/result_.csv'):
+    def __init__(self, result_file_path):
         self.fetcher = Fetcher(result_file_path)
         self.cur_position = dict()
         self.cache = dict()
@@ -22,8 +21,8 @@ class Agent:
         for row in content.split('\n'):
             if not row:
                 continue
-            name, code, amount, buy_price = row.split(',')
-            cur_position[int(code)] = {'amount': int(amount), 'buy_price': buy_price}
+            name, code, amount, _ = row.split(',')  # 忽略 buy_price 列
+            cur_position[int(code)] = {'amount': int(amount)}
         self.set_position(cur_position)
         return cur_position
 
@@ -54,12 +53,7 @@ class Agent:
                 return money
         # 执行交易
         if code not in self.cur_position:
-            self.cur_position[code] = {'amount': 0, 'buy_price': 0}
-        price = self.fetcher.get_open_by_code(code, day)
-        if amount > 0:  # 买入时更新成本价
-            total_amount = self.cur_position[code]['amount'] + amount
-            total_cost = self.cur_position[code]['amount'] * self.cur_position[code]['buy_price'] + price * amount
-            self.cur_position[code]['buy_price'] = total_cost / total_amount
+            self.cur_position[code] = {'amount': 0}
         self.cur_position[code]['amount'] += amount
         if self.cur_position[code]['amount'] == 0:
             del self.cur_position[code]
