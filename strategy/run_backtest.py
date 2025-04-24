@@ -21,6 +21,9 @@ parser.add_argument('--min_sell_rank', type=int, default=200, help='不卖出排
 # screen
 parser.add_argument('--threshold_top', type=int, default=10, help='买入前threshold_top只股票')
 parser.add_argument('--threshold_mid', type=int, default=200, help='持有threshold_mid只股票')
+# stop
+parser.add_argument('--stop_loss_ratio', type=float, default=0.85, help='止损率')
+parser.add_argument('--take_profit_ratio', type=float, default=1.30, help='止盈率')
 
 args = parser.parse_args()
 # 设置随机种子
@@ -41,5 +44,8 @@ app.set_strategy(
     # screen
     threshold_top=args.threshold_top,
     threshold_mid=args.threshold_mid,
+    #stop
+    stop_loss_ratio = args.stop_loss_ratio,
+    take_profit_ratio = args.take_profit_ratio,
 )
 app.backtest(start_money=args.start_money, window=args.window)
