@@ -175,3 +175,4 @@ cython_debug/
 data/
 strategy/position/
 strategy/result/
+.DS_Store

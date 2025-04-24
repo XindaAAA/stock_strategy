@@ -5,7 +5,7 @@
 - 获取模型预测信号，保存在`./data/result.csv`
 
 ## 回测策略文档
-- 在`./strategy/strategy_zoo`中参考`demo.py`的格式新建策略
+- 在`./strategy/strategy_zoo`中参考`strategy_demo.py`的格式新建策略
 - 在`./strategy/app.py`中导入新建的策略，添加到`APP.STRATEGY_MAP`中
 - 使用`python run_backtest.py --strategy demo`运行回测
 
