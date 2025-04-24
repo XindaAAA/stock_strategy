@@ -16,7 +16,8 @@ class StrategyStop(StrategyBase):
     sell_count: 每次调仓最大卖出股票数量
     min_buy_value: 最小买入金额
     min_sell_rank: 不卖出排名在此之前的股票
-    stop
+    stop_lose_ratio: 止损率
+    take_profit_ratio: 止盈率
 
     回测结果:
     回测时间段: 20210104 至 20241216
