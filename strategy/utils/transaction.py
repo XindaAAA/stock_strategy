@@ -7,8 +7,8 @@ class Agent:
     guohufei=0.00001
     yinhuashui=0.0005
 
-    def __init__(self, result_file_path):
-        self.fetcher = Fetcher(result_file_path)
+    def __init__(self, result_file_path, stock_data_path):
+        self.fetcher = Fetcher(result_file_path, stock_data_path)
         self.cur_position = dict()
         self.cache = dict()
 
@@ -53,7 +53,12 @@ class Agent:
                 return money
         # 执行交易
         if code not in self.cur_position:
-            self.cur_position[code] = {'amount': 0}
+            self.cur_position[code] = {'amount': 0, 'buy_price': 0}
+        price = self.fetcher.get_open_by_code(code, day)
+        if amount > 0:  # 买入时更新成本价
+            total_amount = self.cur_position[code]['amount'] + amount
+            total_cost = self.cur_position[code]['amount'] * self.cur_position[code]['buy_price'] + price * amount
+            self.cur_position[code]['buy_price'] = total_cost / total_amount
         self.cur_position[code]['amount'] += amount
         if self.cur_position[code]['amount'] == 0:
             del self.cur_position[code]

@@ -1,7 +1,7 @@
 from utils.transaction import Agent
-from strategy_zoo.strategy_v1 import StrategyV1
-from strategy_zoo.strategy_v2 import StrategyV2
+from strategy_zoo.strategy_demo import StrategyDemo
 from strategy_zoo.strategy_random import StrategyRandom
+from strategy_zoo.strategy_screen import StrategyScreen
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime
@@ -12,21 +12,22 @@ class APP:
     """支持多策略选择的回测系统"""
     
     STRATEGY_MAP = {
-        'v1': StrategyV1,
-        'v2': StrategyV2,
+        'demo': StrategyDemo,
         'random': StrategyRandom,
+        'screen': StrategyScreen,
     }
     st = {70, 488, 525, 615, 669, 752, 793, 851, 889, 909, 989, 2005, 2024, 2092, 2124, 2168, 2197, 2200, 2251, 2259, 2289, 2316, 2388, 2424, 2425, 2485, 2490, 2528, 2569, 2592, 2602, 2650, 2656, 2721, 2742, 2748, 2808, 2822, 2872, 300029, 300052, 300096, 300097, 300125, 300137, 300147, 300163, 300165, 300175, 300205, 300300, 300313, 300343, 300368, 300376, 300419, 300555, 300600, 600136, 600190, 600287, 600303, 600358, 600360, 600365, 600381, 600568, 600599, 600603, 600608, 600671, 600711, 600777, 600831, 603007, 603377, 603388, 603557, 603828, 603869, 603879, 603959, 688287}
 
-    def __init__(self, result_file_path, strategy_name='v1'):
-        self.agent = Agent(result_file_path)
+    def __init__(self, result_file_path, stock_data_path):
+        self.agent = Agent(result_file_path, stock_data_path)
         self.fetcher = self.agent.fetcher
-        self.set_strategy(strategy_name)
+        self.strategy = None
 
-    def set_strategy(self, strategy_name):
+    def set_strategy(self, strategy_name, **kwargs):
         """设置当前使用的策略"""
-        strategy_class = self.STRATEGY_MAP.get(strategy_name, StrategyV1)
-        self.strategy = strategy_class()
+        strategy_class = self.STRATEGY_MAP[strategy_name]
+        self.strategy = strategy_class(**kwargs)
+        self.strategy.name = strategy_name
         return self
 
     def show_pred_result(self, day, k=20, filt_st=True):
@@ -51,12 +52,14 @@ class APP:
         for i, code, tag in sorted(result_list, key=lambda item: item[0]):
             print('{:>4}. 股票代码 {:0>6} {}'.format(i, code, tag))
 
-    def backtest(self, start_money=15_0000, strategy_name=None, filt_st=True):
+    def backtest(self, start_money, window):
         """回测"""
-        os.makedirs('result/position', exist_ok=True)
-        if strategy_name is not None:
-            self.set_strategy(strategy_name)
-            
+        if self.strategy is None:
+            raise ValueError('Strategy Unset, use app.set_strategy() to set strategy')
+        # 结果保存的地址
+        save_dir = f'result/{self.strategy.name}'
+        os.makedirs(os.path.join(save_dir, 'position'), exist_ok=True)
+        # 初始化账户
         money_left = start_money
         strategy = dict()
         total_money_list = []
@@ -77,7 +80,7 @@ class APP:
             total_money_list.append(total_money)
             print(day, '总权益', total_money, '剩余金额', money_left)
             # 保存当前仓位信息
-            with open(f'result/position/{day}.csv', 'w') as f:
+            with open(os.path.join(save_dir, 'position', f'{day}.csv'), 'w', encoding='utf-8') as f:
                 txt = '股票代码,当前仓位,开盘价,收盘价,市值\n'
                 for code in self.agent.cur_position:
                     amount = self.agent.cur_position[code]['amount']
@@ -86,10 +89,14 @@ class APP:
                     txt += f'{code},{amount},{round(open_, 2)},{round(close, 2)},{round(amount * open_)}\n'
                 f.write(txt)
 
-            strategy = self.get_strategy(day, money_left, total_money, filt_st=filt_st)
+            strategy = self.get_strategy(day, money_left, total_money, window)
 
-        self.analyze_backtest_result(day_list, total_money_list)
-        self.plot_total_money(day_list, total_money_list)
+        # 总结回测结果
+        summary = self.analyze_backtest_result(day_list, total_money_list)
+        print(summary)
+        with open(os.path.join(save_dir, 'summary.txt'), 'w', encoding='utf-8') as f:
+            f.write(summary)
+        self.plot_total_money(day_list, total_money_list, os.path.join(save_dir, 'fig.png'))
 
     def analyze_backtest_result(self, day_list, total_money_list):
         """
@@ -143,23 +150,21 @@ class APP:
             recovery_date = "未修复"
         
         txt = f"回测时间段: {day_list[0]} 至 {day_list[-1]}\n"
+        txt += f"初始资金: {total_money_list[0]:.0f}\n"
         txt += f"总收益率: {total_return:.2f}%\n"
         txt += f"年化收益率: {total_annual_return:.2f}%\n"
         txt += f"最大回撤: {max_drawdown:.2f}%\n"
         txt += f"最大回撤发生时间段: {max_dd_start_date} 至 {max_dd_end_date}\n"
         txt += f"修复时段: {max_dd_end_date} 至 {recovery_date}\n"
-        with open('result/result.txt', 'w') as f:
-            f.write(txt)
-        print(txt)
+        return txt
 
-    def get_strategy(self, day, money_left, total_money, filt_st=True):
+    def get_strategy(self, day, money_left, total_money, window):
         cur_position = self.agent.cur_position.copy()
         day_data = self.fetcher.get_data_by_date(day)
-        day_data_window = self.fetcher.get_data_by_date(day, window=20)
+        day_data_window = self.fetcher.get_data_by_date(day, window=window)
         return self.strategy.get_strategy(cur_position, day_data, day_data_window, money_left, total_money)
         
-
-    def plot_total_money(self, day_list, total_money_list):
+    def plot_total_money(self, day_list, total_money_list, save_path=None):
         fig, ax = plt.subplots(figsize=(12, 6))
         # 添加网格线
         ax.grid(True)
@@ -174,10 +179,11 @@ class APP:
 
         # 自动旋转 x 轴标签以防止重叠
         fig.autofmt_xdate()
-        plt.savefig('result/fig.png')
+        if save_path:
+            plt.savefig(save_path)
         plt.show()
 
 
 if __name__ == '__main__':
     app = APP('../data/result.csv', strategy_name='random')
-    app.backtest(start_money=1000_0000)
+    app.backtest(start_money=15_0000)

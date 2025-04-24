@@ -1,25 +1,38 @@
 from .base import StrategyBase
 import math
 
-class StrategyV2(StrategyBase):
-    """基于筛选法构建投资组合的策略"""
+class StrategyScreen(StrategyBase):
+    """
+    基于筛选法构建投资组合的策略
     
-    def __init__(self):
-        super().__init__()
-        # 筛选参数
-        self.top_buy_count = 80  # 买入前top_buy_count只股票
-        self.middle_hold_count = 420  # 持有middle_hold_count只股票
-        self.target_portfolio_size = 50
+    策略原理：
+    1. 对股票进行筛选，选择排名靠前的股票作为买入候选
+    2. 买入策略：买入排名靠前的股票，不超过最大持仓数量
+    3. 卖出策略：卖出排名靠后的持仓股票，不超过最大持仓数量
 
-    def get_strategy(self, cur_position, day_result, day_data_window, money_left=0, principal=15_0000):
+    策略参数：
+    threshold_top: 买入前threshold_top只股票
+    threshold_mid: 持有threshold_mid只股票
+
+    回测结果：
+    回测时间段: 20210104 至 20241216
+    初始资金: 150000
+    总收益率: 208.05%
+    年化收益率: 32.95%
+    最大回撤: 36.08%
+    最大回撤发生时间段: 20240103 至 20240207
+    修复时段: 20240207 至 20241031
+    """
+
+    def get_strategy(self, cur_position, day_result, day_data_window, money_left, principal):
         strategy = {}
 
         day_result = day_result.sort_values(by='pred', ascending=False)
         sorted_stocks = day_result.index.get_level_values(0).tolist()
 
-        buy_list = sorted_stocks[:self.top_buy_count]
-        hold_list = sorted_stocks[self.top_buy_count:self.top_buy_count + self.middle_hold_count]
-        sell_list = sorted_stocks[self.top_buy_count + self.middle_hold_count:]
+        buy_list = sorted_stocks[:self.threshold_top]
+        hold_list = sorted_stocks[self.threshold_top:self.threshold_top + self.threshold_mid]
+        sell_list = sorted_stocks[self.threshold_top + self.threshold_mid:]
 
         current_holdings = list(cur_position.keys())
 

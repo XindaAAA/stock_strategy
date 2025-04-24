@@ -4,14 +4,14 @@ from datetime import datetime
 
 
 class Fetcher:
-    def __init__(self, result_file_path):
-        self.stock_data = self._get_stock_data()
+    def __init__(self, result_file_path, stock_data_path):
+        self.stock_data = self._get_stock_data(stock_data_path)
         self.pred_result = self._get_pred_result(result_file_path)
         self.combined_data = self._merge_data()
         self.date_list = sorted(self.combined_data.index.get_level_values('day').unique())
 
-    def _get_stock_data(self):
-        df = pd.read_parquet('../../stock_data/data/stock_data.parquet')
+    def _get_stock_data(self, data_path):
+        df = pd.read_parquet(data_path)
         df['day'] = df['day'].astype(str)
         df.set_index(['code', 'day'], inplace=True)
         return df[['open', 'close']]
